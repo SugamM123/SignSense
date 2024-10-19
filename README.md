@@ -29,3 +29,8 @@ SignSense uses a combination of real-time hand tracking and gesture recognition 
 * TensorFlow/Keras for machine learning (planned)
 * Flask for backend API (planned)
 * React Native for mobile app development (planned)
+
+
+## DataSet Link
+
+* https://universe.roboflow.com/sign-recognintion/sign-recoginition/dataset/1#
