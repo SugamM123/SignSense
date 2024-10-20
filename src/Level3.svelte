@@ -98,7 +98,7 @@
       <button on:click={() => handleAnswer(option)}>{option}</button>
     {/each}
   </div>
-  <button on:click={() => dispatch('back')}>Back to Lessons</button>
+  <button class="home-button" on:click={() => dispatch('back')}>Back to Lessons</button>
 </div>
 
 <style>
@@ -117,6 +117,20 @@
     margin-bottom: 10px;
   }
 
+  .home-button {
+		position: relative;
+		bottom: 0;
+    left: 0;
+		background-color: transparent;
+		color: #007bff;
+		border: 2px solid #007bff;
+		padding: 16px 32px;
+		border-radius: 20px;
+		cursor: pointer;
+		font-size: 1em;
+		transition: background-color 0.3s, color 0.3s;
+    margin-top: 20px;
+	}
   .health-bar div {
     height: 100%;
     transition: width 0.3s ease-in-out;

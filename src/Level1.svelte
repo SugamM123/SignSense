@@ -95,10 +95,10 @@
     margin: 20px 0;
   }
 
-.home-button {
-		position: absolute;
-		bottom: 20px;
-		left: 20px;
+  .home-button {
+		position: relative;
+		bottom: 0;
+    left: 0;
 		background-color: transparent;
 		color: #007bff;
 		border: 2px solid #007bff;
@@ -107,6 +107,7 @@
 		cursor: pointer;
 		font-size: 1em;
 		transition: background-color 0.3s, color 0.3s;
+    margin-top: 20px;
 	}
 
 	.home-button:hover {

@@ -1,6 +1,5 @@
-<script>
-  import { createEventDispatcher } from 'svelte';
-  import { onMount } from 'svelte';
+<script lang="ts">
+  import { createEventDispatcher, onMount } from 'svelte';
   const dispatch = createEventDispatcher();
 
   const ASL_SIGNS = {
@@ -35,19 +34,46 @@
   let currentQuestion = '';
   let options = [];
   let health = 1;
+  let isCameraQuestion = false;
+
+  // Camera-related variables
+  let videoSource: HTMLVideoElement;
+  let canvas: HTMLCanvasElement;
+  let loading = false;
+  let streamActive = false;
+  let results: Array<{ name: string, confidence: number }> = [];
+  let frameCount = 0;
+  let detectionInterval: number;
 
   function newQuestion() {
-    const letters = Object.keys(ASL_SIGNS);
-    currentQuestion = letters[Math.floor(Math.random() * letters.length)];
-    let wrongAnswers = letters.filter(letter => letter !== currentQuestion);
-    wrongAnswers = wrongAnswers.sort(() => 0.5 - Math.random()).slice(0, 3);
-    options = [currentQuestion, ...wrongAnswers].sort(() => 0.5 - Math.random());
-    let isVisual = (Math.random() > 0.2);
+    isCameraQuestion = Math.random() < 0.5;
+    if(!isCameraQuestion){
+      const letters = Object.keys(ASL_SIGNS);
+      currentQuestion = letters[Math.floor(Math.random() * letters.length)];
+      let wrongAnswers = letters.filter(letter => letter !== currentQuestion);
+      wrongAnswers = wrongAnswers.sort(() => 0.5 - Math.random()).slice(0, 3);
+      options = [currentQuestion, ...wrongAnswers].sort(() => 0.5 - Math.random());
+    }
+    if(!isCameraQuestion && streamActive){
+      stopStream();
+    }
+    if (isCameraQuestion && !streamActive) {
+      obtenerVideoCamara();
+    } else if (!isCameraQuestion && streamActive) {
+      stopStream();
+    }
+
 
   }
 
   function handleAnswer(selectedAnswer) {
-    if (selectedAnswer === currentQuestion) {
+    if (!isCameraQuestion) {
+      processAnswer(selectedAnswer === currentQuestion);
+    }
+  }
+
+  function processAnswer(isCorrect: boolean) {
+    if (isCorrect) {
       health = Math.min(1, health + 0.1);
       alert('Correct! Great job!');
     } else {
@@ -63,7 +89,91 @@
     return 'bg-red-500';
   }
 
-  newQuestion();
+  const obtenerVideoCamara = async () => {
+    try {
+      loading = true;
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' }
+      });
+      videoSource.srcObject = stream;
+      await videoSource.play();
+      streamActive = true;
+      loading = false;
+      startDetection();
+    } catch (error) {
+      console.log(error);
+      loading = false;
+    }
+  };
+
+  const stopStream = () => {
+    if (videoSource.srcObject) {
+      const tracks = (videoSource.srcObject as MediaStream).getTracks();
+      tracks.forEach(track => track.stop());
+      videoSource.srcObject = null;
+      streamActive = false;
+      stopDetection();
+    }
+  };
+
+  const captureAndDetect = () => {
+    if (!canvas) return;
+    
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    context.drawImage(videoSource, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+      if (!blob) return;
+
+      const formData = new FormData();
+      formData.append('file', blob, 'capture.jpg');
+
+      fetch('https://hack.shloklab.us/detect/', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        results = data.detections;
+        checkCameraAnswer();
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        results = [{ name: 'Error detecting objects', confidence: 0 }];
+      });
+    }, 'image/jpeg');
+  };
+
+  const startDetection = () => {
+    detectionInterval = setInterval(() => {
+      frameCount++;
+      if (frameCount % 5 === 0) {
+        captureAndDetect();
+      }
+    }, 1000 / 30); // Assuming 30 fps
+  };
+
+  const stopDetection = () => {
+    clearInterval(detectionInterval);
+    frameCount = 0;
+  };
+
+  function checkCameraAnswer() {
+    const detectedLetter = results.find(result => result.name === currentQuestion);
+    if (detectedLetter && detectedLetter.confidence > 0.7) {
+      processAnswer(true);
+    } else if (frameCount >= 300) { // 10 seconds (30 fps * 10)
+      processAnswer(false);
+    }
+  }
+
+  onMount(() => {
+    newQuestion();
+    return () => {
+      stopStream();
+    };
+  });
 </script>
 
 <div class="level2">
@@ -72,13 +182,36 @@
     <div class={getHealthColor()} style="width: {health * 100}%"></div>
   </div>
   <p>Health: {Math.round(health * 100)}%</p>
-  <img src={ASL_SIGNS[currentQuestion]} alt="ASL sign" />
-  <div class="options">
-    {#each options as option}
-      <button on:click={() => handleAnswer(option)}>{option}</button>
-    {/each}
-  </div>
-  <button on:click={() => dispatch('back')}>Back to Lessons</button>
+
+  {#if isCameraQuestion}
+    <div class="video-container">
+      <!-- svelte-ignore a11y-media-has-caption -->
+      <video
+        bind:this={videoSource}
+        playsinline
+        muted
+        class:active={streamActive}
+      ></video>
+    </div>
+      <div>
+        <h2>Detected Objects:</h2>
+        {#each results as detection}
+            <p>your doing: {detection.name}</p>
+        {/each}
+    </div>
+    <p>Show the sign for letter {currentQuestion}</p>
+  {:else}
+    <img src={ASL_SIGNS[currentQuestion]} alt="ASL sign" />
+    <div class="options">
+      {#each options as option}
+        <button on:click={() => handleAnswer(option)}>{option}</button>
+      {/each}
+    </div>
+  {/if}
+
+  <canvas bind:this={canvas} width="640" height="480" style="display:none;"></canvas>
+  
+  <button class="home-button" on:click={() => dispatch('back')}>Back to Lessons</button>
 </div>
 
 <style>
@@ -88,6 +221,20 @@
     align-items: center;
   }
 
+  .home-button {
+		position: relative;
+		bottom: 0;
+    left: 0;
+		background-color: transparent;
+		color: #007bff;
+		border: 2px solid #007bff;
+		padding: 16px 32px;
+		border-radius: 20px;
+		cursor: pointer;
+		font-size: 1em;
+		transition: background-color 0.3s, color 0.3s;
+    margin-top: 20px;
+	}
   .health-bar {
     width: 100%;
     height: 20px;
@@ -129,5 +276,24 @@
     border-radius: 5px;
     cursor: pointer;
     font-size: 1em;
+  }
+
+  .video-container {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background-color: #000;
+  }
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+  }
+
+  video.active {
+    display: block;
   }
 </style>
