@@ -1,36 +1,47 @@
-# SignSense
+# Svelte + Vite
 
-## TIDAL Hackathon Project
+This template should help get you started developing with Svelte in Vite.
 
-SignSense is an innovative AI-powered sign language tutor designed to bridge communication gaps and enhance learning experiences for individuals who are deaf or hard of hearing. This project aims to leverage artificial intelligence, machine learning, and computer vision technologies to create an interactive and engaging platform for learning sign language.
+## Recommended IDE Setup
 
-## Project Overview
+[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
 
-SignSense uses a combination of real-time hand tracking and gesture recognition to provide an immersive sign language learning experience. The application can:
+## Need an official Svelte framework?
 
-* Detect and track hand movements using computer vision
-* Recognize and interpret sign language gestures
-* Provide real-time feedback and guidance to learners
-* Offer interactive lessons and practice sessions
+Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
 
-## Features
+## Technical considerations
 
-* Real-time hand tracking and gesture recognition
-* Customizable learning paths for different skill levels
-* Interactive tutorials with visual aids and context
-* Progress tracking and performance analytics
-* Multi-platform support (desktop and mobile)
+**Why use this over SvelteKit?**
 
-## Technologies Used
+- It brings its own routing solution which might not be preferable for some users.
+- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
 
-* Python
-* OpenCV for computer vision
-* MediaPipe for hand tracking
-* TensorFlow/Keras for machine learning (planned)
-* Flask for backend API (planned)
-* React Native for mobile app development (planned)
+This template contains as little as possible to get started with Vite + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
 
+Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
 
-## DataSet Link
+**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
 
-* https://universe.roboflow.com/sign-recognintion/sign-recoginition/dataset/1#
+Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+
+**Why include `.vscode/extensions.json`?**
+
+Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
+
+**Why enable `checkJs` in the JS template?**
+
+It is likely that most cases of changing variable types in runtime are likely to be accidental, rather than deliberate. This provides advanced typechecking out of the box. Should you like to take advantage of the dynamically-typed nature of JavaScript, it is trivial to change the configuration.
+
+**Why is HMR not preserving my local component state?**
+
+HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/sveltejs/svelte-hmr/tree/master/packages/svelte-hmr#preservation-of-local-state).
+
+If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
+
+```js
+// store.js
+// An extremely simple external store
+import { writable } from 'svelte/store'
+export default writable(0)
+```
